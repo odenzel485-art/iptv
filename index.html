@@ -1,8 +1,19 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My IPTV Player</title>
+    
+    <!-- PWA Support -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1a1a2e">
+    
     <style>
+        /* Your existing styles */
         body { font-family: Arial; background: #1a1a2e; color: white; padding: 20px; }
         .channel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
         .channel { background: #16213e; padding: 15px; border-radius: 10px; text-align: center; cursor: pointer; }
@@ -15,6 +26,7 @@
     </style>
 </head>
 <body>
+    <!-- Your existing body content -->
     <h1>📺 My IPTV Player</h1>
     <div id="channelList" class="channel-grid"></div>
     <div id="playerContainer" class="player-container">
@@ -23,12 +35,11 @@
     </div>
 
     <script>
-        // Your playlist URL (use GitHub Raw URL)
+        // Your existing JavaScript
         const PLAYLIST_URL = 'https://raw.githubusercontent.com/odenzel485-art/youtube_iptv/main/kenya_iptv.m3u';
         
         let channels = [];
 
-        // Fetch and parse M3U playlist
         async function loadChannels() {
             try {
                 const response = await fetch(PLAYLIST_URL);
@@ -37,7 +48,6 @@
                 
                 for (let i = 0; i < lines.length; i++) {
                     if (lines[i].startsWith('#EXTINF:')) {
-                        // Extract channel name
                         const nameMatch = lines[i].match(/,([^,]+)$/);
                         const logoMatch = lines[i].match(/tvg-logo="([^"]+)"/);
                         const url = lines[i+1]?.trim();
@@ -86,7 +96,6 @@
             document.title = '📺 My IPTV Player';
         }
 
-        // Load channels on page load
         loadChannels();
     </script>
 </body>
