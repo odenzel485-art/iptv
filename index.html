@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My IPTV Player</title>
+    <style>
+        body { font-family: Arial; background: #1a1a2e; color: white; padding: 20px; }
+        .channel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
+        .channel { background: #16213e; padding: 15px; border-radius: 10px; text-align: center; cursor: pointer; }
+        .channel:hover { background: #0f3460; }
+        .channel img { max-width: 80px; height: auto; }
+        .channel-name { margin-top: 10px; font-size: 14px; }
+        .player-container { margin-top: 20px; display: none; }
+        video { width: 100%; max-height: 500px; background: black; }
+        .back-btn { margin: 10px 0; padding: 10px 20px; background: #e94560; border: none; color: white; cursor: pointer; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>📺 My IPTV Player</h1>
+    <div id="channelList" class="channel-grid"></div>
+    <div id="playerContainer" class="player-container">
+        <button class="back-btn" onclick="goBack()">⬅ Back to Channels</button>
+        <video id="videoPlayer" controls autoplay></video>
+    </div>
+
+    <script>
+        // Your playlist URL (use GitHub Raw URL)
+        const PLAYLIST_URL = 'https://raw.githubusercontent.com/odenzel485-art/youtube_iptv/main/kenya_iptv.m3u';
+        
+        let channels = [];
+
+        // Fetch and parse M3U playlist
+        async function loadChannels() {
+            try {
+                const response = await fetch(PLAYLIST_URL);
+                const text = await response.text();
+                const lines = text.split('\n');
+                
+                for (let i = 0; i < lines.length; i++) {
+                    if (lines[i].startsWith('#EXTINF:')) {
+                        // Extract channel name
+                        const nameMatch = lines[i].match(/,([^,]+)$/);
+                        const logoMatch = lines[i].match(/tvg-logo="([^"]+)"/);
+                        const url = lines[i+1]?.trim();
+                        
+                        if (url && nameMatch) {
+                            channels.push({
+                                name: nameMatch[1],
+                                logo: logoMatch ? logoMatch[1] : null,
+                                url: url
+                            });
+                        }
+                    }
+                }
+                renderChannels();
+            } catch (error) {
+                console.error('Error loading playlist:', error);
+                document.getElementById('channelList').innerHTML = '<p>Error loading channels. Check playlist URL.</p>';
+            }
+        }
+
+        function renderChannels() {
+            const grid = document.getElementById('channelList');
+            grid.innerHTML = channels.map(ch => `
+                <div class="channel" onclick="playChannel('${ch.url}', '${ch.name}')">
+                    ${ch.logo ? `<img src="${ch.logo}" alt="${ch.name}" onerror="this.style.display='none'">` : ''}
+                    <div class="channel-name">${ch.name}</div>
+                </div>
+            `).join('');
+        }
+
+        function playChannel(url, name) {
+            document.getElementById('channelList').style.display = 'none';
+            document.getElementById('playerContainer').style.display = 'block';
+            const video = document.getElementById('videoPlayer');
+            video.src = url;
+            video.play();
+            document.title = `📺 ${name}`;
+        }
+
+        function goBack() {
+            document.getElementById('channelList').style.display = 'grid';
+            document.getElementById('playerContainer').style.display = 'none';
+            const video = document.getElementById('videoPlayer');
+            video.pause();
+            video.src = '';
+            document.title = '📺 My IPTV Player';
+        }
+
+        // Load channels on page load
+        loadChannels();
+    </script>
+</body>
+</html>
