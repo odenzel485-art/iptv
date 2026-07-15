@@ -57,18 +57,3 @@ Adding a new Channel
 
 To add a new channel, make a Pull Request.
 
-In your Pull Request you need to provide information to show that the channel is free.
-Use imgur.com to host the channel logo and point to it.
-If you have a valid stream, add it and put [>] in front of it.
-If you don't have an stream for the channel, add [x]() in the url column and place your channel in the Invalid category.
-If you have a stream but it doesn't work well, put the channel in the Invalid category and put [x] in front of the url.
-If you're adding geoblocked URLs specify it in your PR and specify which country they're working in. The PR will only be merged if these URLs can be tested.
-Removing a Channel
-
-To remove a channel, make a Pull Request.
-
-In your Pull Request you need to provide information to show that the channel is only available via a private paid subscription.
-
-Note: Public taxes (whether national or regional, whether called TV License or not) do not constitute a private paid subscription.
-
-If a stream is broken, simply move the channel to the invalid category and replace [>] with [x] in the url column.
