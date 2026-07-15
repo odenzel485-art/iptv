@@ -1,102 +1,348 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My IPTV Player</title>
-    
-    <!-- PWA Support -->
-    <link rel="manifest" href="manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#1a1a2e">
-    
-    <style>
-        /* Your existing styles */
-        body { font-family: Arial; background: #1a1a2e; color: white; padding: 20px; }
-        .channel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
-        .channel { background: #16213e; padding: 15px; border-radius: 10px; text-align: center; cursor: pointer; }
-        .channel:hover { background: #0f3460; }
-        .channel img { max-width: 80px; height: auto; }
-        .channel-name { margin-top: 10px; font-size: 14px; }
-        .player-container { margin-top: 20px; display: none; }
-        video { width: 100%; max-height: 500px; background: black; }
-        .back-btn { margin: 10px 0; padding: 10px 20px; background: #e94560; border: none; color: white; cursor: pointer; border-radius: 5px; }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>My IPTV Player</title>
+
+  <!-- PWA Support -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#1a1a2e" />
+
+  <style>
+    :root {
+      --bg: #1a1a2e;
+      --panel: #16213e;
+      --accent: #e94560;
+      --muted: #94a3b8;
+      --focus: #2b6cb0;
+    }
+
+    html,body{height:100%;margin:0}
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: linear-gradient(180deg,#0f1724 0%, var(--bg) 100%);
+      color: #fff;
+      padding: 18px;
+      box-sizing: border-box;
+      min-height: 100%;
+    }
+
+    header { display:flex; gap:12px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
+    h1 { margin:0; font-size:1.25rem; display:flex; align-items:center; gap:8px; }
+    .controls { margin-left:auto; display:flex; gap:8px; align-items:center; }
+
+    .search {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.04);
+      color: white;
+      padding: 8px 10px;
+      border-radius: 8px;
+      min-width: 200px;
+    }
+
+    .channel-grid {
+      display:grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px,1fr));
+      gap:12px;
+    }
+
+    .channel {
+      background: var(--panel);
+      padding: 10px;
+      border-radius: 10px;
+      text-align:center;
+      cursor:pointer;
+      transition: transform .08s ease, box-shadow .08s ease;
+      user-select:none;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .channel:focus { outline:3px solid var(--focus); outline-offset:2px; }
+    .channel:hover { transform: translateY(-4px); box-shadow: 0 6px 20px rgba(0,0,0,0.35); }
+    .channel img { max-width:84px; height:auto; border-radius:6px; background: rgba(255,255,255,0.02);}
+    .channel-name { font-size:.9rem; color: #fff; text-overflow: ellipsis; white-space:nowrap; overflow:hidden; width:100%; padding:0 6px; }
+    .channel-meta { font-size:.75rem; color:var(--muted); margin-top:-4px; }
+
+    .player-container { margin-top:18px; display:none; }
+    video { width:100%; max-height:60vh; background:black; border-radius:8px; }
+    .back-btn {
+      margin:10px 0 14px 0;
+      padding:8px 12px;
+      background:var(--accent);
+      border:none;
+      color: #fff;
+      cursor:pointer;
+      border-radius:7px;
+    }
+
+    .status { margin-top:10px; color:var(--muted); font-size:.9rem; }
+
+    /* small devices */
+    @media (max-width:520px){
+      .channel-grid { grid-template-columns: repeat(auto-fill, minmax(140px,1fr)); }
+    }
+  </style>
+
+  <!-- HLS.js: plays .m3u8 streams in browsers that don't support Media Source natively -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 </head>
 <body>
-    <!-- Your existing body content -->
+  <header aria-label="Top controls">
     <h1>📺 My IPTV Player</h1>
-    <div id="channelList" class="channel-grid"></div>
-    <div id="playerContainer" class="player-container">
-        <button class="back-btn" onclick="goBack()">⬅ Back to Channels</button>
-        <video id="videoPlayer" controls autoplay></video>
+    <div class="controls">
+      <input id="search" class="search" placeholder="Search channels..." aria-label="Search channels" />
+      <button id="refresh" title="Reload playlist">⟲</button>
     </div>
+  </header>
 
-    <script>
-        // Your existing JavaScript
-        const PLAYLIST_URL = 'https://raw.githubusercontent.com/odenzel485-art/youtube_iptv/main/kenya_iptv.m3u';
-        
-        let channels = [];
+  <main>
+    <div id="channelList" class="channel-grid" role="list" aria-label="Channel list"></div>
 
-        async function loadChannels() {
-            try {
-                const response = await fetch(PLAYLIST_URL);
-                const text = await response.text();
-                const lines = text.split('\n');
-                
-                for (let i = 0; i < lines.length; i++) {
-                    if (lines[i].startsWith('#EXTINF:')) {
-                        const nameMatch = lines[i].match(/,([^,]+)$/);
-                        const logoMatch = lines[i].match(/tvg-logo="([^"]+)"/);
-                        const url = lines[i+1]?.trim();
-                        
-                        if (url && nameMatch) {
-                            channels.push({
-                                name: nameMatch[1],
-                                logo: logoMatch ? logoMatch[1] : null,
-                                url: url
-                            });
-                        }
-                    }
-                }
-                renderChannels();
-            } catch (error) {
-                console.error('Error loading playlist:', error);
-                document.getElementById('channelList').innerHTML = '<p>Error loading channels. Check playlist URL.</p>';
+    <div id="playerContainer" class="player-container" aria-hidden="true">
+      <button class="back-btn" id="backBtn">⬅ Back to Channels</button>
+      <div id="playerWrap">
+        <video id="videoPlayer" controls playsinline></video>
+      </div>
+      <div id="status" class="status" role="status" aria-live="polite"></div>
+    </div>
+  </main>
+
+  <script>
+    // Config
+    const PLAYLIST_URL = 'https://raw.githubusercontent.com/odenzel485-art/youtube_iptv/main/kenya_iptv.m3u';
+    const channelListEl = document.getElementById('channelList');
+    const playerContainer = document.getElementById('playerContainer');
+    const video = document.getElementById('videoPlayer');
+    const statusEl = document.getElementById('status');
+    const searchInput = document.getElementById('search');
+    const backBtn = document.getElementById('backBtn');
+    const refreshBtn = document.getElementById('refresh');
+
+    let channels = [];
+    let hls = null;
+    let currentChannel = null;
+
+    // Robust M3U parser: extracts attributes and channel name (handles commas in names by splitting on the first comma)
+    function parseM3U(text) {
+      const lines = text.split(/\r?\n/).map(l => l.trim());
+      const out = [];
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (!line) continue;
+        if (line.startsWith('#EXTINF:')) {
+          // attributes between #EXTINF:... and the first comma
+          const afterTag = line.substring('#EXTINF:'.length);
+          const commaIdx = afterTag.indexOf(',');
+          const attrPart = commaIdx >= 0 ? afterTag.substring(0, commaIdx) : afterTag;
+          const name = commaIdx >= 0 ? afterTag.substring(commaIdx + 1).trim() : '';
+          // extract key="value" attributes
+          const attrs = {};
+          const attrRegex = /([\w-]+)=(".*?"|'.*?'|\S+)/g;
+          let m;
+          while ((m = attrRegex.exec(attrPart)) !== null) {
+            let val = m[2];
+            if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+              val = val.substring(1, val.length - 1);
             }
-        }
+            attrs[m[1]] = val;
+          }
 
-        function renderChannels() {
-            const grid = document.getElementById('channelList');
-            grid.innerHTML = channels.map(ch => `
-                <div class="channel" onclick="playChannel('${ch.url}', '${ch.name}')">
-                    ${ch.logo ? `<img src="${ch.logo}" alt="${ch.name}" onerror="this.style.display='none'">` : ''}
-                    <div class="channel-name">${ch.name}</div>
-                </div>
-            `).join('');
+          // find next non-empty non-comment line for URL
+          let url = null;
+          for (let j = i + 1; j < lines.length; j++) {
+            if (!lines[j] || lines[j].startsWith('#')) continue;
+            url = lines[j];
+            break;
+          }
+          if (url) {
+            out.push({
+              name: name || (attrs['tvg-name'] || attrs['title'] || 'Unknown'),
+              url: url,
+              logo: attrs['tvg-logo'] || null,
+              tvgId: attrs['tvg-id'] || null,
+              group: attrs['group-title'] || null,
+              rawAttributes: attrs
+            });
+          }
         }
+      }
+      return out;
+    }
 
-        function playChannel(url, name) {
-            document.getElementById('channelList').style.display = 'none';
-            document.getElementById('playerContainer').style.display = 'block';
-            const video = document.getElementById('videoPlayer');
-            video.src = url;
-            video.play();
-            document.title = `📺 ${name}`;
+    // Build DOM nodes (safe, avoids innerHTML injection)
+    function renderChannels(list) {
+      channelListEl.innerHTML = '';
+      if (!list.length) {
+        channelListEl.innerHTML = '<div style="color:var(--muted)">No channels found.</div>';
+        return;
+      }
+      const frag = document.createDocumentFragment();
+      for (const ch of list) {
+        const item = document.createElement('div');
+        item.className = 'channel';
+        item.setAttribute('role','button');
+        item.setAttribute('tabindex','0');
+        item.dataset.url = ch.url;
+
+        const img = document.createElement('img');
+        if (ch.logo) {
+          img.src = ch.logo;
+          img.alt = ch.name + ' logo';
+        } else {
+          img.alt = '';
         }
+        img.loading = 'lazy';
+        img.onerror = () => { img.style.display = 'none'; };
 
-        function goBack() {
-            document.getElementById('channelList').style.display = 'grid';
-            document.getElementById('playerContainer').style.display = 'none';
-            const video = document.getElementById('videoPlayer');
-            video.pause();
-            video.src = '';
-            document.title = '📺 My IPTV Player';
+        const name = document.createElement('div');
+        name.className = 'channel-name';
+        name.textContent = ch.name;
+
+        const meta = document.createElement('div');
+        meta.className = 'channel-meta';
+        meta.textContent = ch.group || '';
+
+        item.appendChild(img);
+        item.appendChild(name);
+        item.appendChild(meta);
+
+        // click / keyboard handlers
+        item.addEventListener('click', () => playChannel(ch));
+        item.addEventListener('keydown', (ev) => {
+          if (ev.key === 'Enter' || ev.key === ' ') {
+            ev.preventDefault();
+            playChannel(ch);
+          }
+        });
+
+        frag.appendChild(item);
+      }
+      channelListEl.appendChild(frag);
+    }
+
+    // Play channel: uses hls.js for .m3u8 when needed, fallback to native
+    async function playChannel(ch) {
+      stopPlayback();
+      currentChannel = ch;
+      channelListEl.style.display = 'none';
+      playerContainer.style.display = 'block';
+      playerContainer.setAttribute('aria-hidden','false');
+      statusEl.textContent = `Loading ${ch.name}...`;
+      document.title = `📺 ${ch.name}`;
+
+      const url = ch.url;
+      try {
+        // If HLS (m3u8) and browser doesn't support it natively, use hls.js
+        const isM3U8 = url.toLowerCase().includes('.m3u8') || url.includes('m3u8');
+        if (isM3U8 && window.Hls && Hls.isSupported()) {
+          hls = new Hls();
+          hls.loadSource(url);
+          hls.attachMedia(video);
+          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            video.play().catch(e => console.warn('Autoplay blocked', e));
+            statusEl.textContent = `Playing: ${ch.name}`;
+          });
+          hls.on(Hls.Events.ERROR, (event, data) => {
+            console.error('HLS error', data);
+            statusEl.textContent = 'Playback error (HLS). Check console for details.';
+          });
+        } else {
+          // native playback or other formats
+          video.src = url;
+          await video.play(); // may reject if autoplay blocked
+          statusEl.textContent = `Playing: ${ch.name}`;
         }
+        // persist last played
+        try { localStorage.setItem('lastPlayed', JSON.stringify(ch)); } catch (e) {}
+      } catch (err) {
+        console.error('Playback failed', err);
+        statusEl.textContent = 'Playback failed. See console for details.';
+      }
+    }
 
-        loadChannels();
-    </script>
+    function stopPlayback() {
+      // teardown hls instance if present
+      if (hls) {
+        try { hls.destroy(); } catch (e) {}
+        hls = null;
+      }
+      try {
+        video.pause();
+        video.removeAttribute('src');
+        video.load();
+      } catch (e) {}
+      statusEl.textContent = '';
+    }
+
+    function goBack() {
+      stopPlayback();
+      playerContainer.style.display = 'none';
+      playerContainer.setAttribute('aria-hidden','true');
+      channelListEl.style.display = 'grid';
+      document.title = '📺 My IPTV Player';
+      currentChannel = null;
+    }
+
+    // Load playlist and render
+    async function loadChannels() {
+      statusEl.textContent = 'Fetching playlist...';
+      try {
+        const resp = await fetch(PLAYLIST_URL, {cache: 'no-store'});
+        if (!resp.ok) throw new Error('Network response was not ok: ' + resp.status);
+        const text = await resp.text();
+        channels = parseM3U(text);
+        renderChannels(channels);
+        statusEl.textContent = `Loaded ${channels.length} channels.`;
+        // restore last played
+        try {
+          const last = JSON.parse(localStorage.getItem('lastPlayed') || 'null');
+          if (last && last.url) {
+            // optionally autoload — here we just remember but don't auto-play
+            statusEl.textContent += ' (last: ' + last.name + ')';
+          }
+        } catch(e){}
+      } catch (err) {
+        console.error('Error loading playlist', err);
+        channelListEl.innerHTML = '<div style="color:var(--muted)">Error loading channels. Check playlist URL or CORS settings.</div>';
+        statusEl.textContent = 'Failed to load playlist.';
+      }
+    }
+
+    // Simple search
+    function filterChannels(query) {
+      const q = (query || '').trim().toLowerCase();
+      if (!q) renderChannels(channels);
+      else renderChannels(channels.filter(c => (c.name || '').toLowerCase().includes(q) || (c.group||'').toLowerCase().includes(q)));
+    }
+
+    // Event wiring
+    backBtn.addEventListener('click', goBack);
+    refreshBtn.addEventListener('click', () => loadChannels());
+    searchInput.addEventListener('input', (e) => filterChannels(e.target.value));
+    // keyboard: Escape to go back
+    document.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Escape' && playerContainer.style.display === 'block') goBack();
+    });
+
+    // Register service worker (optional; create /sw.js in repo)
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').then(reg => {
+        console.debug('SW registered', reg);
+      }).catch(err => {
+        console.debug('SW registration failed', err);
+      });
+    }
+
+    // Start
+    loadChannels();
+  </script>
 </body>
 </html>
