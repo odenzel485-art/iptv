@@ -110,8 +110,8 @@ jobs:
           echo "📊 File sizes:"
           find . -name "*.html" -o -name "*.css" -o -name "*.js" | xargs du -h 2>/dev/null | sort -hr || echo "No files found"
 
-  # ============================================
-  # JOB 5: Security Scan
+   # ============================================
+  # JOB 5: Security Scan (FIXED)
   # ============================================
   security:
     name: Security Scan
@@ -129,9 +129,21 @@ jobs:
             
             function scanFile(filePath) {
               const content = fs.readFileSync(filePath, 'utf8');
+              // Only check for REAL secret patterns, not common words
               const patterns = [
-                /(key|token|secret|password|api_key|private_key)/i,
-                /['"][a-zA-Z0-9_-]{20,}['"]/
+                // API keys in assignments: api_key = "value" or api_key:"value"
+                /(?:api[_-]?key|api[_-]?secret|password|private[_-]?key|access[_-]?token|bearer\s+[a-zA-Z0-9_.-]+)\s*[:=]\s*['"][^'"]+['"]/i,
+                // Stripe live keys
+                /sk[-_]?live[-_]?[a-zA-Z0-9_-]{20,}/i,
+                /pk[-_]?live[-_]?[a-zA-Z0-9_-]{20,}/i,
+                // AWS keys
+                /AKIA[0-9A-Z]{16}/i,
+                /aws_secret_access_key\s*[:=]\s*['"]?[A-Za-z0-9/+=]{40}['"]?/i,
+                // Private key headers
+                /-----BEGIN RSA PRIVATE KEY-----/,
+                /-----BEGIN OPENSSH PRIVATE KEY-----/,
+                // Generic secret assignment (more strict)
+                /['"](?:secret|token|password)['"]\s*[:=]\s*['"][^'"]{8,}['"]/i
               ];
               
               for (const pattern of patterns) {
@@ -149,9 +161,10 @@ jobs:
               for (const file of files) {
                 const fullPath = path.join(dir, file);
                 const stat = fs.statSync(fullPath);
-                if (stat.isDirectory() && !file.startsWith('.') && file !== 'node_modules') {
+                // Skip .git, node_modules, and other common folders
+                if (stat.isDirectory() && !file.startsWith('.') && file !== 'node_modules' && file !== 'dist' && file !== 'build') {
                   if (walkDir(fullPath)) found = true;
-                } else if (stat.isFile() && ['.js', '.html', '.css', '.json', '.env'].includes(path.extname(file))) {
+                } else if (stat.isFile() && ['.js', '.html', '.css', '.json', '.env', '.yml', '.yaml'].includes(path.extname(file))) {
                   if (scanFile(fullPath)) found = true;
                 }
               }
