@@ -1,136 +1,487 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>My IPTV Player</title>
+  <title>My First App - TV Streaming</title>
 
   <!-- PWA Support -->
   <link rel="manifest" href="manifest.json" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="theme-color" content="#1a1a2e" />
+  <meta name="theme-color" content="#0f0f0f" />
 
   <style>
-    :root {
-      --bg: #1a1a2e;
-      --panel: #16213e;
-      --accent: #e94560;
-      --muted: #94a3b8;
-      --focus: #2b6cb0;
-    }
-
-    html,body{height:100%;margin:0}
-    body {
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-      background: linear-gradient(180deg,#0f1724 0%, var(--bg) 100%);
-      color: #fff;
-      padding: 18px;
+    * {
+      margin: 0;
+      padding: 0;
       box-sizing: border-box;
-      min-height: 100%;
     }
 
-    header { display:flex; gap:12px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
-    h1 { margin:0; font-size:1.25rem; display:flex; align-items:center; gap:8px; }
-    .controls { margin-left:auto; display:flex; gap:8px; align-items:center; }
+    :root {
+      --bg-primary: #0f0f0f;
+      --bg-secondary: #181818;
+      --bg-tertiary: #272727;
+      --text-primary: #ffffff;
+      --text-secondary: #aaaaaa;
+      --accent: #ff0000;
+      --accent-hover: #cc0000;
+      --sidebar-width: 240px;
+      --sidebar-width-collapsed: 72px;
+    }
 
-    .search {
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.04);
-      color: white;
-      padding: 8px 10px;
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+    }
+
+    /* Main Layout */
+    .app-container {
+      display: flex;
+      height: 100vh;
+      flex-direction: column;
+    }
+
+    /* Header/Navbar */
+    .navbar {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 12px 24px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--bg-tertiary);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      height: 56px;
+    }
+
+    .navbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--accent);
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .navbar-brand:hover {
+      opacity: 0.8;
+    }
+
+    .navbar-spacer {
+      flex: 1;
+    }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+      background: var(--bg-tertiary);
+      border-radius: 20px;
+      padding: 8px 16px;
+      width: 300px;
+      border: 1px solid var(--bg-tertiary);
+      transition: border-color 0.2s;
+    }
+
+    .search-box:focus-within {
+      border-color: var(--text-secondary);
+    }
+
+    .search-box input {
+      background: none;
+      border: none;
+      color: var(--text-primary);
+      flex: 1;
+      outline: none;
+      font-size: 14px;
+    }
+
+    .search-box input::placeholder {
+      color: var(--text-secondary);
+    }
+
+    .refresh-btn {
+      background: var(--bg-tertiary);
+      border: none;
+      color: var(--text-primary);
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background 0.2s;
+    }
+
+    .refresh-btn:hover {
+      background: var(--accent);
+    }
+
+    /* Main Content */
+    .content-wrapper {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--bg-tertiary);
+      overflow-y: auto;
+      padding-top: 8px;
+      transition: width 0.3s;
+    }
+
+    .sidebar.collapsed {
+      width: var(--sidebar-width-collapsed);
+    }
+
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 12px 16px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s;
+      border-left: 4px solid transparent;
+      font-size: 14px;
+    }
+
+    .sidebar.collapsed .sidebar-item {
+      justify-content: center;
+      gap: 0;
+    }
+
+    .sidebar.collapsed .sidebar-label {
+      display: none;
+    }
+
+    .sidebar-item:hover {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+
+    .sidebar-item.active {
+      color: var(--accent);
+      background: var(--bg-tertiary);
+      border-left-color: var(--accent);
+    }
+
+    .sidebar-icon {
+      font-size: 20px;
+      min-width: 24px;
+      text-align: center;
+    }
+
+    /* Main Content Area */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .player-section {
+      display: none;
+      background: var(--bg-primary);
+      border-bottom: 1px solid var(--bg-tertiary);
+      padding: 20px;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+
+    .player-section.active {
+      display: block;
+    }
+
+    .video-player {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
       border-radius: 8px;
-      min-width: 200px;
+      overflow: hidden;
+      background: black;
     }
 
-    .channel-grid {
-      display:grid;
-      grid-template-columns: repeat(auto-fill, minmax(180px,1fr));
-      gap:12px;
+    video {
+      width: 100%;
+      display: block;
     }
 
-    .channel {
-      background: var(--panel);
-      padding: 10px;
-      border-radius: 10px;
-      text-align:center;
-      cursor:pointer;
-      transition: transform .08s ease, box-shadow .08s ease;
-      user-select:none;
-      display:flex;
-      flex-direction:column;
-      gap:8px;
-      align-items:center;
-      justify-content:center;
+    .player-info {
+      margin-top: 16px;
+      max-width: 1200px;
+      margin-left: auto;
+      margin-right: auto;
     }
 
-    .channel:focus { outline:3px solid var(--focus); outline-offset:2px; }
-    .channel:hover { transform: translateY(-4px); box-shadow: 0 6px 20px rgba(0,0,0,0.35); }
-    .channel img { max-width:84px; height:auto; border-radius:6px; background: rgba(255,255,255,0.02);}
-    .channel-name { font-size:.9rem; color: #fff; text-overflow: ellipsis; white-space:nowrap; overflow:hidden; width:100%; padding:0 6px; }
-    .channel-meta { font-size:.75rem; color:var(--muted); margin-top:-4px; }
-
-    .player-container { margin-top:18px; display:none; }
-    video { width:100%; max-height:60vh; background:black; border-radius:8px; }
-    .back-btn {
-      margin:10px 0 14px 0;
-      padding:8px 12px;
-      background:var(--accent);
-      border:none;
-      color: #fff;
-      cursor:pointer;
-      border-radius:7px;
+    .player-title {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 8px;
     }
 
-    .status { margin-top:10px; color:var(--muted); font-size:.9rem; }
+    .player-back {
+      display: inline-block;
+      padding: 8px 16px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      margin-bottom: 16px;
+      transition: background 0.2s;
+    }
 
-    /* small devices */
-    @media (max-width:520px){
-      .channel-grid { grid-template-columns: repeat(auto-fill, minmax(140px,1fr)); }
+    .player-back:hover {
+      background: var(--accent-hover);
+    }
+
+    /* Channels Grid */
+    .channels-section {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
+
+    .section-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      margin-top: 0;
+    }
+
+    .channels-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .channel-card {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid var(--bg-tertiary);
+    }
+
+    .channel-card:hover {
+      background: var(--bg-tertiary);
+      transform: translateY(-4px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+    }
+
+    .channel-thumbnail {
+      width: 100%;
+      height: 112px;
+      background: linear-gradient(135deg, var(--accent) 0%, #cc0000 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      color: white;
+      font-weight: bold;
+    }
+
+    .channel-info {
+      padding: 12px;
+    }
+
+    .channel-name {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .channel-category {
+      font-size: 12px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .status-bar {
+      padding: 12px 20px;
+      color: var(--text-secondary);
+      font-size: 12px;
+      border-top: 1px solid var(--bg-tertiary);
+    }
+
+    /* Responsive */
+    @media (max-width: 960px) {
+      .channels-grid {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      }
+
+      .sidebar {
+        width: var(--sidebar-width-collapsed);
+      }
+
+      .sidebar-label {
+        display: none;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .navbar {
+        gap: 8px;
+        padding: 8px 12px;
+      }
+
+      .search-box {
+        display: none;
+      }
+
+      .navbar-brand {
+        font-size: 18px;
+      }
+
+      .channels-grid {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 12px;
+      }
+
+      .sidebar {
+        width: var(--sidebar-width-collapsed);
+      }
+
+      .channel-thumbnail {
+        height: 90px;
+        font-size: 36px;
+      }
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 12px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-secondary);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--bg-tertiary);
+      border-radius: 6px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-secondary);
     }
   </style>
 
-  <!-- HLS.js: plays .m3u8 streams in browsers that don't support Media Source natively -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 </head>
 <body>
-  <header aria-label="Top controls">
-    <h1>📺 My IPTV Player</h1>
-    <div class="controls">
-      <input id="search" class="search" placeholder="Search channels..." aria-label="Search channels" />
-      <button id="refresh" title="Reload playlist">⟲</button>
-    </div>
-  </header>
-
-  <main>
-    <div id="channelList" class="channel-grid" role="list" aria-label="Channel list"></div>
-
-    <div id="playerContainer" class="player-container" aria-hidden="true">
-      <button class="back-btn" id="backBtn">⬅ Back to Channels</button>
-      <div id="playerWrap">
-        <video id="videoPlayer" controls playsinline></video>
+  <div class="app-container">
+    <!-- Navbar -->
+    <div class="navbar">
+      <a href="#" class="navbar-brand" onclick="goHome(); return false;">
+        ▶ My First App
+      </a>
+      <div class="navbar-spacer"></div>
+      <div class="search-box">
+        <input type="text" id="search" placeholder="Search channels..." />
+        <span style="color: var(--text-secondary);">🔍</span>
       </div>
-      <div id="status" class="status" role="status" aria-live="polite"></div>
+      <button class="refresh-btn" id="refreshBtn" title="Refresh playlist">⟲</button>
     </div>
-  </main>
+
+    <!-- Main Content -->
+    <div class="content-wrapper">
+      <!-- Sidebar -->
+      <div class="sidebar" id="sidebar">
+        <div class="sidebar-item active" onclick="showCategory('all')">
+          <span class="sidebar-icon">🏠</span>
+          <span class="sidebar-label">Home</span>
+        </div>
+        <div class="sidebar-item" onclick="showCategory('kenya')">
+          <span class="sidebar-icon">🇰🇪</span>
+          <span class="sidebar-label">Kenya TV</span>
+        </div>
+        <div class="sidebar-item" onclick="showCategory('kids')">
+          <span class="sidebar-icon">👶</span>
+          <span class="sidebar-label">Kids</span>
+        </div>
+        <div class="sidebar-item" onclick="showCategory('recent')">
+          <span class="sidebar-icon">🕐</span>
+          <span class="sidebar-label">Recent</span>
+        </div>
+      </div>
+
+      <!-- Main Content Area -->
+      <div class="main-content">
+        <!-- Video Player -->
+        <div class="player-section" id="playerSection">
+          <div style="display: flex; gap: 8px; margin-bottom: 16px; align-items: center;">
+            <button class="player-back" onclick="goHome()">⬅ Back</button>
+            <button class="player-back" style="background: var(--bg-tertiary); color: var(--text-primary); flex: 1;" onclick="playPrevious()" title="Previous channel">⏮ Previous</button>
+            <button class="player-back" style="background: var(--bg-tertiary); color: var(--text-primary); flex: 1;" onclick="playNext()" title="Next channel">Next ⏭</button>
+          </div>
+          <div class="video-player">
+            <video id="videoPlayer" controls playsinline></video>
+          </div>
+          <div class="player-info">
+            <h2 class="player-title" id="playerTitle">Channel Name</h2>
+            <p id="playerStatus" style="color: var(--text-secondary); font-size: 12px;"></p>
+          </div>
+        </div>
+
+        <!-- Channels Grid -->
+        <div class="channels-section" id="channelsSection">
+          <h2 class="section-title" id="sectionTitle">All Channels</h2>
+          <div class="channels-grid" id="channelGrid"></div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar" id="statusBar">Ready</div>
+      </div>
+    </div>
+  </div>
 
   <script>
     // Config
-    const PLAYLIST_URL = 'https://raw.githubusercontent.com/odenzel485-art/youtube_iptv/main/kenya_iptv.m3u';
-    const channelListEl = document.getElementById('channelList');
-    const playerContainer = document.getElementById('playerContainer');
-    const video = document.getElementById('videoPlayer');
-    const statusEl = document.getElementById('status');
-    const searchInput = document.getElementById('search');
-    const backBtn = document.getElementById('backBtn');
-    const refreshBtn = document.getElementById('refresh');
+    const PLAYLIST_URL = 'project_1.m3u';
+    const AUTO_REFRESH_INTERVAL = 30 * 60 * 1000; // 30 minutes
 
-    let channels = [];
+    // State
+    let allChannels = [];
+    let filteredChannels = [];
     let hls = null;
     let currentChannel = null;
+    let currentCategory = 'all';
+    let lastRefreshTime = null;
+    let autoRefreshTimer = null;
+    let recentChannels = [];
 
-    // Robust M3U parser: extracts attributes and channel name (handles commas in names by splitting on the first comma)
+    // DOM Elements
+    const channelGrid = document.getElementById('channelGrid');
+    const playerSection = document.getElementById('playerSection');
+    const channelsSection = document.getElementById('channelsSection');
+    const videoPlayer = document.getElementById('videoPlayer');
+    const playerTitle = document.getElementById('playerTitle');
+    const playerStatus = document.getElementById('playerStatus');
+    const statusBar = document.getElementById('statusBar');
+    const searchInput = document.getElementById('search');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const sectionTitle = document.getElementById('sectionTitle');
+
+    // M3U Parser
     function parseM3U(text) {
       const lines = text.split(/\r?\n/).map(l => l.trim());
       const out = [];
@@ -138,12 +489,10 @@
         const line = lines[i];
         if (!line) continue;
         if (line.startsWith('#EXTINF:')) {
-          // attributes between #EXTINF:... and the first comma
           const afterTag = line.substring('#EXTINF:'.length);
           const commaIdx = afterTag.indexOf(',');
           const attrPart = commaIdx >= 0 ? afterTag.substring(0, commaIdx) : afterTag;
           const name = commaIdx >= 0 ? afterTag.substring(commaIdx + 1).trim() : '';
-          // extract key="value" attributes
           const attrs = {};
           const attrRegex = /([\w-]+)=(".*?"|'.*?'|\S+)/g;
           let m;
@@ -154,8 +503,6 @@
             }
             attrs[m[1]] = val;
           }
-
-          // find next non-empty non-comment line for URL
           let url = null;
           for (let j = i + 1; j < lines.length; j++) {
             if (!lines[j] || lines[j].startsWith('#')) continue;
@@ -163,13 +510,13 @@
             break;
           }
           if (url) {
+            const category = (attrs['group-title'] || '').toLowerCase();
             out.push({
               name: name || (attrs['tvg-name'] || attrs['title'] || 'Unknown'),
               url: url,
               logo: attrs['tvg-logo'] || null,
-              tvgId: attrs['tvg-id'] || null,
               group: attrs['group-title'] || null,
-              rawAttributes: attrs
+              category: category.includes('kids') ? 'kids' : 'kenya'
             });
           }
         }
@@ -177,172 +524,196 @@
       return out;
     }
 
-    // Build DOM nodes (safe, avoids innerHTML injection)
-    function renderChannels(list) {
-      channelListEl.innerHTML = '';
-      if (!list.length) {
-        channelListEl.innerHTML = '<div style="color:var(--muted)">No channels found.</div>';
+    // Determine category
+    function getCategory(channel) {
+      if (channel.name.match(/citizen|ntv|ktv|k24/i)) return 'kenya';
+      if (channel.group && channel.group.match(/kids/i)) return 'kids';
+      return 'other';
+    }
+
+    // Render channels grid
+    function renderChannels(channels) {
+      channelGrid.innerHTML = '';
+      if (channels.length === 0) {
+        channelGrid.innerHTML = '<div style="grid-column: 1/-1; padding: 40px; text-align: center; color: var(--text-secondary);">No channels found</div>';
         return;
       }
       const frag = document.createDocumentFragment();
-      for (const ch of list) {
-        const item = document.createElement('div');
-        item.className = 'channel';
-        item.setAttribute('role','button');
-        item.setAttribute('tabindex','0');
-        item.dataset.url = ch.url;
-
-        const img = document.createElement('img');
-        if (ch.logo) {
-          img.src = ch.logo;
-          img.alt = ch.name + ' logo';
-        } else {
-          img.alt = '';
-        }
-        img.loading = 'lazy';
-        img.onerror = () => { img.style.display = 'none'; };
-
-        const name = document.createElement('div');
-        name.className = 'channel-name';
-        name.textContent = ch.name;
-
-        const meta = document.createElement('div');
-        meta.className = 'channel-meta';
-        meta.textContent = ch.group || '';
-
-        item.appendChild(img);
-        item.appendChild(name);
-        item.appendChild(meta);
-
-        // click / keyboard handlers
-        item.addEventListener('click', () => playChannel(ch));
-        item.addEventListener('keydown', (ev) => {
-          if (ev.key === 'Enter' || ev.key === ' ') {
-            ev.preventDefault();
-            playChannel(ch);
-          }
-        });
-
-        frag.appendChild(item);
+      for (const ch of channels) {
+        const card = document.createElement('div');
+        card.className = 'channel-card';
+        const firstLetter = ch.name.charAt(0).toUpperCase();
+        card.innerHTML = `
+          <div class="channel-thumbnail">${firstLetter}</div>
+          <div class="channel-info">
+            <div class="channel-name" title="${ch.name}">${ch.name}</div>
+            <div class="channel-category">${ch.group || 'Channel'}</div>
+          </div>
+        `;
+        card.onclick = () => playChannel(ch);
+        frag.appendChild(card);
       }
-      channelListEl.appendChild(frag);
+      channelGrid.appendChild(frag);
     }
 
-    // Play channel: uses hls.js for .m3u8 when needed, fallback to native
+    // Play next channel
+    function playNext() {
+      if (!filteredChannels.length) return;
+      const idx = filteredChannels.findIndex(c => c.name === (currentChannel?.name || ''));
+      const nextIdx = (idx + 1) % filteredChannels.length;
+      playChannel(filteredChannels[nextIdx]);
+    }
+
+    // Play previous channel
+    function playPrevious() {
+      if (!filteredChannels.length) return;
+      const idx = filteredChannels.findIndex(c => c.name === (currentChannel?.name || ''));
+      const prevIdx = idx <= 0 ? filteredChannels.length - 1 : idx - 1;
+      playChannel(filteredChannels[prevIdx]);
+    }
+
+    // Play channel
     async function playChannel(ch) {
       stopPlayback();
       currentChannel = ch;
-      channelListEl.style.display = 'none';
-      playerContainer.style.display = 'block';
-      playerContainer.setAttribute('aria-hidden','false');
-      statusEl.textContent = `Loading ${ch.name}...`;
-      document.title = `📺 ${ch.name}`;
+      playerSection.classList.add('active');
+      channelsSection.style.display = 'none';
+      playerTitle.textContent = ch.name;
+      playerStatus.textContent = `Loading ${ch.name}...`;
+      
+      // Add to recent
+      recentChannels = recentChannels.filter(c => c.name !== ch.name);
+      recentChannels.unshift(ch);
+      if (recentChannels.length > 10) recentChannels.pop();
+      localStorage.setItem('recentChannels', JSON.stringify(recentChannels));
 
-      const url = ch.url;
       try {
-        // If HLS (m3u8) and browser doesn't support it natively, use hls.js
-        const isM3U8 = url.toLowerCase().includes('.m3u8') || url.includes('m3u8');
+        const isM3U8 = ch.url.toLowerCase().includes('.m3u8') || ch.url.includes('m3u8');
         if (isM3U8 && window.Hls && Hls.isSupported()) {
           hls = new Hls();
-          hls.loadSource(url);
-          hls.attachMedia(video);
+          hls.loadSource(ch.url);
+          hls.attachMedia(videoPlayer);
           hls.on(Hls.Events.MANIFEST_PARSED, () => {
-            video.play().catch(e => console.warn('Autoplay blocked', e));
-            statusEl.textContent = `Playing: ${ch.name}`;
-          });
-          hls.on(Hls.Events.ERROR, (event, data) => {
-            console.error('HLS error', data);
-            statusEl.textContent = 'Playback error (HLS). Check console for details.';
+            videoPlayer.play().catch(e => console.warn('Autoplay blocked', e));
+            playerStatus.textContent = `▶ Playing: ${ch.name}`;
           });
         } else {
-          // native playback or other formats
-          video.src = url;
-          await video.play(); // may reject if autoplay blocked
-          statusEl.textContent = `Playing: ${ch.name}`;
+          videoPlayer.src = ch.url;
+          await videoPlayer.play();
+          playerStatus.textContent = `▶ Playing: ${ch.name}`;
         }
-        // persist last played
         try { localStorage.setItem('lastPlayed', JSON.stringify(ch)); } catch (e) {}
       } catch (err) {
         console.error('Playback failed', err);
-        statusEl.textContent = 'Playback failed. See console for details.';
+        playerStatus.textContent = 'Playback failed. Try another channel.';
       }
     }
 
+    // Stop playback
     function stopPlayback() {
-      // teardown hls instance if present
       if (hls) {
         try { hls.destroy(); } catch (e) {}
         hls = null;
       }
       try {
-        video.pause();
-        video.removeAttribute('src');
-        video.load();
+        videoPlayer.pause();
+        videoPlayer.removeAttribute('src');
+        videoPlayer.load();
       } catch (e) {}
-      statusEl.textContent = '';
     }
 
-    function goBack() {
+    // Go home
+    function goHome() {
       stopPlayback();
-      playerContainer.style.display = 'none';
-      playerContainer.setAttribute('aria-hidden','true');
-      channelListEl.style.display = 'grid';
-      document.title = '📺 My IPTV Player';
+      playerSection.classList.remove('active');
+      channelsSection.style.display = 'block';
       currentChannel = null;
+      showCategory(currentCategory);
     }
 
-    // Load playlist and render
-    async function loadChannels() {
-      statusEl.textContent = 'Fetching playlist...';
-      try {
-        const resp = await fetch(PLAYLIST_URL, {cache: 'no-store'});
-        if (!resp.ok) throw new Error('Network response was not ok: ' + resp.status);
-        const text = await resp.text();
-        channels = parseM3U(text);
-        renderChannels(channels);
-        statusEl.textContent = `Loaded ${channels.length} channels.`;
-        // restore last played
-        try {
-          const last = JSON.parse(localStorage.getItem('lastPlayed') || 'null');
-          if (last && last.url) {
-            // optionally autoload — here we just remember but don't auto-play
-            statusEl.textContent += ' (last: ' + last.name + ')';
-          }
-        } catch(e){}
-      } catch (err) {
-        console.error('Error loading playlist', err);
-        channelListEl.innerHTML = '<div style="color:var(--muted)">Error loading channels. Check playlist URL or CORS settings.</div>';
-        statusEl.textContent = 'Failed to load playlist.';
+    // Show category
+    function showCategory(category) {
+      currentCategory = category;
+      document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+      event?.target?.closest('.sidebar-item')?.classList.add('active');
+
+      if (category === 'all') {
+        filteredChannels = allChannels;
+        sectionTitle.textContent = 'All Channels';
+      } else if (category === 'kenya') {
+        filteredChannels = allChannels.filter(c => getCategory(c) === 'kenya');
+        sectionTitle.textContent = '🇰🇪 Kenya TV';
+      } else if (category === 'kids') {
+        filteredChannels = allChannels.filter(c => getCategory(c) === 'kids' || (c.group && c.group.match(/kids/i)));
+        sectionTitle.textContent = '👶 Kids Channels';
+      } else if (category === 'recent') {
+        filteredChannels = recentChannels;
+        sectionTitle.textContent = '🕐 Recently Watched';
+      }
+      renderChannels(filteredChannels);
+    }
+
+    // Filter channels
+    function filterChannels(query) {
+      const q = (query || '').trim().toLowerCase();
+      if (!q) {
+        showCategory(currentCategory);
+      } else {
+        filteredChannels = allChannels.filter(c => 
+          c.name.toLowerCase().includes(q) || (c.group || '').toLowerCase().includes(q)
+        );
+        sectionTitle.textContent = `Search Results for "${query}"`;
+        renderChannels(filteredChannels);
       }
     }
 
-    // Simple search
-    function filterChannels(query) {
-      const q = (query || '').trim().toLowerCase();
-      if (!q) renderChannels(channels);
-      else renderChannels(channels.filter(c => (c.name || '').toLowerCase().includes(q) || (c.group||'').toLowerCase().includes(q)));
+    // Load channels
+    async function loadChannels() {
+      statusBar.textContent = 'Fetching channels...';
+      try {
+        const resp = await fetch(PLAYLIST_URL, {cache: 'no-store'});
+        if (!resp.ok) throw new Error('Network response was not ok');
+        const text = await resp.text();
+        allChannels = parseM3U(text);
+        allChannels.forEach(ch => ch.category = getCategory(ch));
+        
+        // Load recent channels
+        try {
+          recentChannels = JSON.parse(localStorage.getItem('recentChannels') || '[]');
+        } catch (e) {}
+
+        lastRefreshTime = new Date().toLocaleTimeString();
+        statusBar.textContent = `✓ Loaded ${allChannels.length} channels • Last updated: ${lastRefreshTime}`;
+        showCategory('all');
+      } catch (err) {
+        console.error('Error loading playlist', err);
+        statusBar.textContent = '✗ Error loading channels';
+      }
     }
 
-    // Event wiring
-    backBtn.addEventListener('click', goBack);
-    refreshBtn.addEventListener('click', () => loadChannels());
+    // Event listeners
     searchInput.addEventListener('input', (e) => filterChannels(e.target.value));
-    // keyboard: Escape to go back
-    document.addEventListener('keydown', (ev) => {
-      if (ev.key === 'Escape' && playerContainer.style.display === 'block') goBack();
+    refreshBtn.addEventListener('click', () => loadChannels());
+
+    // Auto-refresh
+    function startAutoRefresh() {
+      clearInterval(autoRefreshTimer);
+      autoRefreshTimer = setInterval(() => {
+        console.log('Auto-refreshing...');
+        loadChannels();
+      }, AUTO_REFRESH_INTERVAL);
+    }
+
+    // Initialize
+    window.addEventListener('load', () => {
+      loadChannels();
+      startAutoRefresh();
     });
 
-    // Register service worker (optional; create /sw.js in repo)
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').then(reg => {
-        console.debug('SW registered', reg);
-      }).catch(err => {
-        console.debug('SW registration failed', err);
-      });
-    }
-
-    // Start
-    loadChannels();
+    // Cleanup
+    window.addEventListener('beforeunload', () => {
+      clearInterval(autoRefreshTimer);
+    });
   </script>
 </body>
 </html>
