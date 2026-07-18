@@ -1,7 +1,46 @@
-To use it point your IPTV player to https://raw.githubusercontent.com/odenzel485-art/youtube_iptv/refs/heads/main/kenya_iptv.m3u .
+# My First App - TV Streaming Platform
 
-Philosophy
-The main goals for this playlist are listed below.
+A modern, YouTube-style IPTV streaming application featuring a comprehensive channel library with support for Kenya TV channels, Kids programming, and international content.
+
+## Quick Start
+
+1. Open `index.html` in your web browser
+2. Browse channels by category or search for your favorites
+3. Click any channel to start watching
+4. Use Previous/Next buttons to navigate channels
+
+## Features
+
+- 🎨 **YouTube-inspired Design** - Modern dark theme with intuitive navigation
+- 📺 **500+ Channels** - Kenya TV, Kids channels, and international content
+- 🔍 **Search & Filter** - Find channels by name or category
+- ⏭️ **Channel Navigation** - Previous/Next buttons for easy browsing
+- 💾 **History Tracking** - Recently watched channels saved locally  
+- 🔄 **Auto-Refresh** - Playlist updates automatically every 30 minutes
+- 📱 **Responsive Design** - Works seamlessly on mobile, tablet, and desktop
+- 🎯 **No Ads** - Clean, ad-free streaming experience
+- 🌙 **Dark Mode** - Easy on the eyes with YouTube-style dark theme
+
+## M3U Playlist URL
+
+To use with external IPTV players:
+
+```
+https://raw.githubusercontent.com/odenzel485-art/project-1/refs/heads/main/project_1.m3u
+```
+
+## Channel Categories
+
+The app organizes channels into the following categories:
+
+- 🏠 **All Channels** - Complete channel library
+- 🇰🇪 **Kenya TV** - Local Kenyan television channels
+- 👶 **Kids** - Children's programming and family-friendly content
+- 🕐 **Recently Watched** - Your viewing history
+
+## Channel Support Guidelines
+
+The main goals for this playlist:
 
 Quality over quantity
 
