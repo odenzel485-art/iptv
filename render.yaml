@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: project-1
+    runtime: python
+    repo: https://github.com/odenzel-art/project-1
+    plan: free
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
