@@ -8,7 +8,7 @@ on:
 
 jobs:
   # ============================================
-  # JOB 1: Basic CI (Required for your ruleset)
+  # JOB 1: Basic CI
   # ============================================
   test:
     name: Basic CI
@@ -110,7 +110,7 @@ jobs:
           echo "📊 File sizes:"
           find . -name "*.html" -o -name "*.css" -o -name "*.js" | xargs du -h 2>/dev/null | sort -hr || echo "No files found"
 
-   # ============================================
+  # ============================================
   # JOB 5: Security Scan (FIXED)
   # ============================================
   security:
@@ -180,7 +180,7 @@ jobs:
             }
 
   # ============================================
-  # JOB 6: Final Status (Required for ruleset)
+  # JOB 6: Final Status
   # ============================================
   final-status:
     name: Final Status
