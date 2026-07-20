@@ -110,74 +110,76 @@ jobs:
           echo "📊 File sizes:"
           find . -name "*.html" -o -name "*.css" -o -name "*.js" | xargs du -h 2>/dev/null | sort -hr || echo "No files found"
 
-   # ============================================
-  # JOB 5: Security Scan (FIXED)
-  # ============================================
-  security:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+   # # ============================================
+# JOB 5: Security Scan (FIXED)
+# ============================================
+security:
+  name: Security Scan
+  runs-on: ubuntu-latest
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Scan for secrets
-        uses: actions/github-script@v7
-        with:
-          script: |
+    - name: Scan for secrets
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+          
+          function scanFile(filePath) {
+            const content = fs.readFileSync(filePath, 'utf8');
+            // Only check for REAL secret patterns, not common words
+            const patterns = [
+              // API keys in assignments: api_key = "value" or api_key:"value"
+              /(?:api[_-]?key|api[_-]?secret|password|private[_-]?key|access[_-]?token|bearer\s+[a-zA-Z0-9_.-]+)\s*[:=]\s*['"][^'"]+['"]/i,
+              // Stripe live keys
+              /sk[-_]?live[-_]?[a-zA-Z0-9_-]{20,}/i,
+              /pk[-_]?live[-_]?[a-zA-Z0-9_-]{20,}/i,
+              // AWS keys
+              /AKIA[0-9A-Z]{16}/i,
+              /aws_secret_access_key\s*[:=]\s*['"]?[A-Za-z0-9/+=]{40}['"]?/i,
+              // Private key headers
+              /-----BEGIN RSA PRIVATE KEY-----/,
+              /-----BEGIN OPENSSH PRIVATE KEY-----/,
+              // Generic secret assignment (more strict)
+              /['"](?:secret|token|password)['"]\s*[:=]\s*['"][^'"]{8,}['"]/i
+            ];
+            
+            for (const pattern of patterns) {
+              if (pattern.test(content)) {
+                console.log(`⚠️ Potential secret found in: ${filePath}`);
+                return true;
+              }
+            }
+            return false;
+          }
+
+          function walkDir(dir) {
             const fs = require('fs');
             const path = require('path');
-            
-            function scanFile(filePath) {
-              const content = fs.readFileSync(filePath, 'utf8');
-              // Only check for REAL secret patterns, not common words
-              const patterns = [
-                // API keys in assignments: api_key = "value" or api_key:"value"
-                /(?:api[_-]?key|api[_-]?secret|password|private[_-]?key|access[_-]?token|bearer\s+[a-zA-Z0-9_.-]+)\s*[:=]\s*['"][^'"]+['"]/i,
-                // Stripe live keys
-                /sk[-_]?live[-_]?[a-zA-Z0-9_-]{20,}/i,
-                /pk[-_]?live[-_]?[a-zA-Z0-9_-]{20,}/i,
-                // AWS keys
-                /AKIA[0-9A-Z]{16}/i,
-                /aws_secret_access_key\s*[:=]\s*['"]?[A-Za-z0-9/+=]{40}['"]?/i,
-                // Private key headers
-                /-----BEGIN RSA PRIVATE KEY-----/,
-                /-----BEGIN OPENSSH PRIVATE KEY-----/,
-                // Generic secret assignment (more strict)
-                /['"](?:secret|token|password)['"]\s*[:=]\s*['"][^'"]{8,}['"]/i
-              ];
-              
-              for (const pattern of patterns) {
-                if (pattern.test(content)) {
-                  console.log(`⚠️ Potential secret found in: ${filePath}`);
-                  return true;
-                }
+            const files = fs.readdirSync(dir);
+            let found = false;
+            for (const file of files) {
+              const fullPath = path.join(dir, file);
+              const stat = fs.statSync(fullPath);
+              // Skip .git, node_modules, and other common folders
+              if (stat.isDirectory() && !file.startsWith('.') && file !== 'node_modules' && file !== 'dist' && file !== 'build') {
+                if (walkDir(fullPath)) found = true;
+              } else if (stat.isFile() && ['.js', '.html', '.css', '.json', '.env', '.yml', '.yaml'].includes(path.extname(file))) {
+                if (scanFile(fullPath)) found = true;
               }
-              return false;
             }
+            return found;
+          }
 
-            function walkDir(dir) {
-              const files = fs.readdirSync(dir);
-              let found = false;
-              for (const file of files) {
-                const fullPath = path.join(dir, file);
-                const stat = fs.statSync(fullPath);
-                // Skip .git, node_modules, and other common folders
-                if (stat.isDirectory() && !file.startsWith('.') && file !== 'node_modules' && file !== 'dist' && file !== 'build') {
-                  if (walkDir(fullPath)) found = true;
-                } else if (stat.isFile() && ['.js', '.html', '.css', '.json', '.env', '.yml', '.yaml'].includes(path.extname(file))) {
-                  if (scanFile(fullPath)) found = true;
-                }
-              }
-              return found;
-            }
-
-            const hasSecrets = walkDir('.');
-            if (hasSecrets) {
-              console.log('⚠️ Potential secrets found! Please review your code.');
-              process.exit(1);
-            } else {
-              console.log('✅ No obvious secrets found.');
-            }
+          const hasSecrets = walkDir('.');
+          if (hasSecrets) {
+            console.log('⚠️ Potential secrets found! Please review your code.');
+            process.exit(1);
+          } else {
+            console.log('✅ No obvious secrets found.');
+          }
 
   # ============================================
   # JOB 6: Final Status (Required for ruleset)
