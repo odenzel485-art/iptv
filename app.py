@@ -1,81 +1,89 @@
-from flask import Flask, request, render_template_string, jsonify
-import subprocess
-import sys
-import os
-import json
-
-app = Flask(__name__)
-
-# HTML template for the web interface
-HTML = """
-<!DOCTYPE html>
-<html>
-<head>
-    <title>YouTube to IPTV</title>
-    <style>
-        body { font-family: Arial, sans-serif; max-width: 700px; margin: 50px auto; padding: 20px; background: #f0f4f8; }
-        h1 { color: #1a73e8; }
-        .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        input, button { padding: 12px; font-size: 16px; margin: 5px 0; width: 100%; box-sizing: border-box; border-radius: 5px; }
-        input { border: 1px solid #ddd; }
-        button { background: #1a73e8; color: white; border: none; cursor: pointer; }
-        button:hover { background: #1557b0; }
-        .result { background: #e8f0fe; padding: 15px; border-radius: 5px; margin-top: 20px; border-left: 4px solid #1a73e8; }
-        .error { background: #fce8e6; border-left-color: #d93025; }
-        a { color: #1a73e8; word-break: break-all; }
-        .badge { display: inline-block; background: #34a853; color: white; padding: 3px 10px; border-radius: 15px; font-size: 12px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>🎬 YouTube to IPTV</h1>
-        <p>Convert YouTube channels to IPTV streams</p>
-        <form method="POST">
-            <input type="text" name="channel" placeholder="Enter YouTube Channel Name (e.g., Citizen TV)" required>
-            <button type="submit">Generate IPTV Link</button>
-        </form>
-        {% if result %}
-            <div class="result">
-                <h3>✅ IPTV URL Generated:</h3>
-                <p><a href="{{ result }}" target="_blank">{{ result }}</a></p>
-                <p><small>📺 Copy this URL and paste it in your IPTV player</small></p>
-            </div>
-        {% endif %}
-        {% if error %}
-            <div class="result error">
-                <h3>⚠️ Error:</h3>
-                <p>{{ error }}</p>
-            </div>
-        {% endif %}
-        <p style="margin-top: 20px; font-size: 14px; color: #666;">
-            📂 <a href="https://github.com/odenzel-art/project-1">View on GitHub</a>
-        </p>
-    </div>
-</body>
-</html>
+#!/usr/bin/env python3
+"""
+YouTube to IPTV - Multi Channel Builder
+Uses cookies.txt file exported from your browser.
 """
 
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    result = None
-    error = None
-    
-    if request.method == 'POST':
-        channel = request.form.get('channel')
-        if channel:
-            try:
-                # Here you can call your project_1.py logic
-                # For now, generating a sample IPTV URL
-                result = f"https://iptv-odenzel.onrender.com/playlist.m3u?channel={channel.replace(' ', '_')}"
-            except Exception as e:
-                error = str(e)
-    
-    return render_template_string(HTML, result=result, error=error)
+import subprocess
+import sys
+import time
+import os
 
-# Health check endpoint for Render
-@app.route('/health')
-def health():
-    return jsonify({"status": "healthy"}), 200
+COOKIES_FILE = "cookies.txt"
 
-if __name__ == '__main__':
-    app.run(debug=False, host='0.0.0.0', port=5000)
+def get_stream_url(youtube_url):
+    """Get stream URL using cookies.txt."""
+    
+    if not os.path.isfile(COOKIES_FILE):
+        print(f"\n    ❌ '{COOKIES_FILE}' not found in the current folder.")
+        print("    → Export cookies from Chrome using the extension.")
+        print("    → Save the file as 'cookies.txt' in this folder.")
+        return None
+    
+    try:
+        cmd = [
+            "python", "-m", "yt_dlp",
+            "-g",
+            "--no-check-certificate",
+            "--cookies", COOKIES_FILE,
+            "--throttled-rate", "1000000",
+            youtube_url
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        lines = result.stdout.strip().split('\n')
+        return lines[0] if lines else None
+    except subprocess.CalledProcessError as e:
+        print(f"\n    ❌ Error:\n{e.stderr.strip()}\n")
+        return None
+
+def main():
+    print("=" * 50)
+    print("🎬 YouTube to IPTV - Multi Channel Builder")
+    print("=" * 50)
+    print("\nMake sure 'cookies.txt' is in the current folder.")
+    print("Type 'done' as the channel name when finished.\n")
+
+    # Check if cookies file exists
+    if os.path.isfile(COOKIES_FILE):
+        print(f"✅ Found {COOKIES_FILE} – good to go!\n")
+    else:
+        print(f"❌ {COOKIES_FILE} not found.")
+        print("   Please export cookies from Chrome and save as 'cookies.txt' in this folder.\n")
+
+    channels = []
+    while True:
+        name = input("Channel name (e.g., Citizen TV): ").strip()
+        if name.lower() == "done":
+            break
+        url = input("YouTube URL (paste the full link): ").strip()
+        if url:
+            channels.append((name, url))
+        print()
+
+    if not channels:
+        print("❌ No channels added.")
+        return
+
+    print(f"\n📥 Fetching stream URLs for {len(channels)} channel(s)...\n")
+    m3u_lines = ["#EXTM3U"]
+
+    for name, url in channels:
+        print(f"  ⏳ {name} ... ", end="", flush=True)
+        stream = get_stream_url(url)
+        if stream:
+            m3u_lines.append(f'#EXTINF:-1,{name}')
+            m3u_lines.append(stream)
+            print("✅ Done")
+        else:
+            print("❌ Failed")
+        time.sleep(1)
+
+    output_file = "kenya_iptv.m3u"
+    with open(output_file, "w", encoding="utf-8") as f:
+        f.write("\n".join(m3u_lines))
+
+    print(f"\n✅ Playlist saved as: {output_file}")
+    print("📺 Open this file in VLC, TiviMate, or any IPTV player.")
+
+if __name__ == "__main__":
+    main()
